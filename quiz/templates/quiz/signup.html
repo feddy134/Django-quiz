@@ -1,0 +1,37 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <h1 style="text-align: center;">Sign up</h1>
+    <form method="POST" action="{% url 'sign_up' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" class="form-control" id="username" name="username" aria-describedby="usenmameH">
+            <small id="usenmameH" class="form-text text-muted">Choose a unique username</small>
+        </div>
+        <div class="form-group">
+            <label for="Password1">Password</label>
+            <input type="password" class="form-control" id="password1" name="password1">
+        </div>
+        <div class="form-group">
+            <label for="Password2">Confirm Password</label>
+            <input type="password" class="form-control" id="password2" name="password2">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <br>
+    <div class="text-center">
+        <a href="{% url 'log_in' %}">
+            <button type="button" style="text-align: center;" class="btn btn-dark">
+                Log in instead
+            </button></a>
+    </div>
+
+</div>
+{% endblock %}

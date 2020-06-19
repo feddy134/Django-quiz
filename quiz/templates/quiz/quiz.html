@@ -1,0 +1,28 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Quiz{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <br>
+    <form method="POST" action="{% url 'result' %}">
+        {% csrf_token %}
+        {% for q in questions.all %}
+        <h5>{{ q.question }}</h5>
+        {% for a in answers.all %}
+            {% if q.id == a.question.id %}
+        <div class="form-check">
+        <input class="form-check-input" type="radio" name="{{ q.id }}" id="{{a.id}}" value="{{a.id}}" >
+        <label class="form-check-label" for="{{a.id}}">
+            {{ a.answer }}
+        </label>
+      </div>
+      {% endif %}
+        {% endfor %}
+        <hr>
+      {% endfor %}
+      <br>
+      <button type="submit" class="btn btn-dark">Submit</button>
+    </form>
+</div>
+{% endblock %}
