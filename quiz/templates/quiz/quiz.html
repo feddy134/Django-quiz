@@ -8,7 +8,7 @@
     <form method="POST" action="{% url 'result' %}">
         {% csrf_token %}
         {% for q in questions.all %}
-        <h5>{{ q.question }}</h5>
+        <h5>Q - {{ q.question }}</h5>
         {% for a in answers.all %}
             {% if q.id == a.question.id %}
         <div class="form-check">

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from . models import Category,Question,Answer,Progress
+from . models import Category,Question,Answer,Progress,Result
 # Register your models here.
 
 class AnswerInline(admin.TabularInline):
@@ -13,3 +13,4 @@ admin.site.register(Category)
 admin.site.register(Question,QuestionAdmin)
 admin.site.register(Answer)
 admin.site.register(Progress)
+admin.site.register(Result)

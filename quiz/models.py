@@ -38,3 +38,9 @@ class Progress(models.Model):
     marks = models.IntegerField()
     total = models.IntegerField()
 
+class Result(models.Model):
+    class Meta:
+        verbose_name_plural = 'Results'
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    question = models.ForeignKey(Question,on_delete=models.CASCADE)
+    correct = correct = models.BooleanField(default=False)

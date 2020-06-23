@@ -1,0 +1,49 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Results{% endblock %}
+
+{% block content %}
+<br>
+
+<div class="container">
+    <h3>Results - {{ marks.correct }}/{{ marks.total }}</h3>
+    {% for key, value in rtndata.items %}
+    
+    <table class="table">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="col">Q. </th>
+            <th scope="col">{{ key.question }}</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% if value.0 == 'CORRECT'  %}
+          <tr>
+            <th scope="row">Result</th>
+            <td class="bg-success">{{ value.0 }}</td>
+          </tr>
+            {% else %}
+            <tr>
+                <th scope="row">Result</th>
+                <td class="bg-danger">{{ value.0 }}</td>
+              </tr>
+          <tr>
+              {% endif %}
+            <th scope="row">Selected</th>
+            <td>{{ value.1 }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Correct</th>
+            <td>{{ value.2 }}</td>
+          </tr>
+          {% if value.3 != ''  %}
+          <tr>
+            <th scope="row">Explanation</th>
+            <td>{{ value.3 }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+      <br>
+      {% endfor %}
+</div>
+{% endblock %}

@@ -29,7 +29,12 @@ def result(request):
         rec_data = request.POST.items()
         data = list(rec_data)
         rem = data.pop(0)
+        rtndata = {}
+        marks = {}
+        correct_ones = 0
+        total_quest = 0
         for i in data:
+            total_quest = total_quest + 1
             q = int(i[0])
             a = int(i[1])
             correct_id = 0
@@ -40,7 +45,21 @@ def result(request):
                     correct_id = ans.id
         
             #check if answer is correct.
-            #if correct create a list with q_id ,correctnswer,result,Explanation  
+            # {qestion_object : [result,selected_answer,correct_answer,explanation]}  
+            if a == correct_id:
+                s_answer = get_object_or_404(Answer,pk=a)
+                selected_answer = s_answer.answer
+                explanation = question.explanation
+                correct_ones = correct_ones + 1
+                rtndata[question] = [ 'CORRECT', selected_answer,selected_answer, explanation]
+            else:
+                s_answer = get_object_or_404(Answer,pk=a)
+                selected_answer = s_answer.answer
+                c_answer = get_object_or_404(Answer,pk=correct_id)
+                correct_answer = c_answer.answer
+                explanation = question.explanation
+                rtndata[question] = [ 'INCORRECT', selected_answer,correct_answer, explanation]
 
-
-        return HttpResponse(ans)
+        marks['correct'] = correct_ones
+        marks['total'] = total_quest
+        return render(request,'quiz/result.html',{'rtndata':rtndata, 'marks':marks})
