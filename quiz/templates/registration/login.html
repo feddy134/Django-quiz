@@ -9,19 +9,25 @@
     <h3 style="text-align: center;">** {{ msg }}</h3>
     {% endfor %}
     <br>
-    <h1 style="text-align: center;">Sign up</h1>
+    <h1 style="text-align: center;">Log In</h1>
     <form method="POST" action="">
         {% csrf_token %}
-        <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" class="form-control" id="username" name="username" >
-        </div>
-        <div class="form-group">
-            <label for="Password1">Password</label>
-            <input type="password" class="form-control" id="password1" name="password1">
-        </div>
+        <table class="table table-hover">
+            <tbody>
+              <tr>
+                <th scope="row">{{ form.username.label }}</th>
+                <td>{{ form.username }}</td>
 
-        <button type="submit" class="btn btn-primary">Submit</button>
+              </tr>
+              <tr>
+                <th scope="row">{{ form.password.label }}</th>
+                <td>{{ form.password }}</td>
+
+              </tr>
+            </tbody>
+          </table>
+          {{ form.errors }}
+        <button type="submit" class="btn btn-dark">Submit</button>
     </form>
     <br>
     <div class="text-center">

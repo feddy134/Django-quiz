@@ -38,6 +38,10 @@ class Progress(models.Model):
     marks = models.IntegerField()
     total = models.IntegerField()
 
+    def __str__(self):
+        s = str(self.user) +" | "+ str(self.category)
+        return s 
+
 class Result(models.Model):
     class Meta:
         verbose_name_plural = 'Results'

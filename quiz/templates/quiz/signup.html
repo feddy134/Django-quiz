@@ -6,28 +6,39 @@
 
 <div class="container">
     <h1 style="text-align: center;">Sign up</h1>
-    <form method="POST" action="{% url 'sign_up' %}">
+    <form method="POST" action="">
         {% csrf_token %}
 
-        <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" class="form-control" id="username" name="username" aria-describedby="usenmameH">
-            <small id="usenmameH" class="form-text text-muted">Choose a unique username</small>
-        </div>
-        <div class="form-group">
-            <label for="Password1">Password</label>
-            <input type="password" class="form-control" id="password1" name="password1">
-        </div>
-        <div class="form-group">
-            <label for="Password2">Confirm Password</label>
-            <input type="password" class="form-control" id="password2" name="password2">
-        </div>
+        <table class="table table-hover">
+            <tbody>
+              <tr>
+                <th scope="row">{{ form.username.label }}</th>
+                <td>{{ form.username }}</td>
 
-        <button type="submit" class="btn btn-primary">Submit</button>
+              </tr>
+              <tr>
+                <th scope="row">{{ form.email.label }}</th>
+                <td>{{ form.email }}</td>
+
+              </tr>
+              <tr>
+                <th scope="row">{{ form.password1.label }}</th>
+                <td>{{ form.password1 }}</td>
+
+              </tr>
+              <tr>
+                <th scope="row">{{ form.password2.label }}</th>
+                <td>{{ form.password2 }}</td>
+
+              </tr>
+            </tbody>
+          </table>
+          <p>{{ form.errors }}</p>
+        <input type="submit" class="btn btn-dark" name="Create User"></input>
     </form>
     <br>
     <div class="text-center">
-        <a href="{% url 'log_in' %}">
+        <a href="/account/login/">
             <button type="button" style="text-align: center;" class="btn btn-dark">
                 Log in instead
             </button></a>
