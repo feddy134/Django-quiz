@@ -47,4 +47,8 @@ class Result(models.Model):
         verbose_name_plural = 'Results'
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     question = models.ForeignKey(Question,on_delete=models.CASCADE)
-    correct = correct = models.BooleanField(default=False)
+    correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        s = str(self.user) +" | "+ str(self.question)
+        return s 

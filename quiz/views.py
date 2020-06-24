@@ -1,5 +1,5 @@
 from django.shortcuts import render ,get_object_or_404 ,redirect ,HttpResponse
-from .models import Category, Question,Answer,Progress
+from .models import Category, Question,Answer,Progress ,Result
 from django.urls import reverse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
@@ -52,6 +52,7 @@ def result(request):
     if request.method == 'POST':
         # request.user
         # [('1', '4'), ('2', '6'), ('3', '11'), ('4', '15'), ('5', '18')]
+        user = request.user
         rec_data = request.POST.items()
         data = list(rec_data)
         rem = data.pop(0)
@@ -70,7 +71,6 @@ def result(request):
             for ans in answers.all():
                 if ans.correct == True:
                     correct_id = ans.id
-        
             #check if answer is correct.
             # {qestion_object : [result,selected_answer,correct_answer,explanation]}  
             if a == correct_id:
@@ -79,6 +79,14 @@ def result(request):
                 explanation = question.explanation
                 correct_ones = correct_ones + 1
                 rtndata[question] = [ 'CORRECT', selected_answer,selected_answer, explanation]
+                #update Result model
+                try:
+                    res = Result.objects.get(user = user,question=question)
+                    res.correct = True
+                    res.save()
+                except Result.DoesNotExist:
+                    res = Result.objects.create(user=user,question=question,correct=True)
+        
             else:
                 s_answer = get_object_or_404(Answer,pk=a)
                 selected_answer = s_answer.answer
@@ -86,12 +94,20 @@ def result(request):
                 correct_answer = c_answer.answer
                 explanation = question.explanation
                 rtndata[question] = [ 'INCORRECT', selected_answer,correct_answer, explanation]
+                #update Result model
+                try:
+                    res = Result.objects.get(user = user,question=question)
+                    res.correct = False
+                    res.save()
+                except Result.DoesNotExist:
+                    res = Result.objects.create(user=user,question=question,correct=False)
 
         total_quest = Question.objects.filter(category=category).count()
         marks['correct'] = correct_ones
         marks['total'] = total_quest
-        user = request.user
-
+        
+        
+        #Update progress Model
         try:
             prog = Progress.objects.get(user=user,category=category)
             prog.marks = correct_ones
