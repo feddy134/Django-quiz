@@ -9,6 +9,10 @@ from django.contrib.auth.decorators import login_required
 # Create your views here.
 @login_required(login_url='/account/login/')
 def index(request):
+    '''
+    Home page view
+    All the categories are displayed
+    '''
     categories = Category.objects.order_by('id')
     user = request.user
     prog_dict = {}
@@ -23,6 +27,9 @@ def index(request):
         return render(request,'quiz/index.html',{'categories':categories})
 
 def sign_up(request):
+    '''
+    To create new user
+    '''
     form = SignUpForm()
 
     if request.method == 'POST':
@@ -36,12 +43,13 @@ def sign_up(request):
     context = {'form':form}
     return render(request,'quiz/signup.html', context)
 
-# def log_in(request):
-#     return render(request,'quiz/login.html')
+
 
 @login_required(login_url='/account/login/')
 def quiz(request,cat_id):
-
+    '''
+    Displays the questions of each category
+    '''
     cat_object = get_object_or_404(Category,pk = cat_id)
     questions = Question.objects.filter(category = cat_object)
     answers = Answer.objects.filter(question__in=questions)
@@ -49,6 +57,9 @@ def quiz(request,cat_id):
 
 @login_required(login_url='/account/login/')
 def result(request):
+    '''
+    Calculates the result 
+    '''
     if request.method == 'POST':
         # request.user
         # [('1', '4'), ('2', '6'), ('3', '11'), ('4', '15'), ('5', '18')]
@@ -62,8 +73,8 @@ def result(request):
         category = None
         # total_quest = 0
         for i in data:
-            q = int(i[0])
-            a = int(i[1])
+            q = i[0]
+            a = i[1]
             correct_id = 0
             question = get_object_or_404(Question,pk = q)
             category = question.category
@@ -82,10 +93,10 @@ def result(request):
                 #update Result model
                 try:
                     res = Result.objects.get(user = user,question=question)
-                    res.correct = True
+                    res.correctness = True
                     res.save()
                 except Result.DoesNotExist:
-                    res = Result.objects.create(user=user,question=question,correct=True)
+                    res = Result.objects.create(user=user,question=question,correctness=True,correct_answer=c_answer,selected_answer=s_answer)
         
             else:
                 s_answer = get_object_or_404(Answer,pk=a)
@@ -97,10 +108,10 @@ def result(request):
                 #update Result model
                 try:
                     res = Result.objects.get(user = user,question=question)
-                    res.correct = False
+                    res.correctness = False
                     res.save()
                 except Result.DoesNotExist:
-                    res = Result.objects.create(user=user,question=question,correct=False)
+                    res = Result.objects.create(user=user,question=question,correctness=False,correct_answer=c_answer,selected_answer=s_answer)
 
         total_quest = Question.objects.filter(category=category).count()
         marks['correct'] = correct_ones
