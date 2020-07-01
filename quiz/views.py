@@ -5,6 +5,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from .forms import SignUpForm
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import cache_control
+
+
 
 # Create your views here.
 @login_required(login_url='/account/login/')
@@ -46,14 +49,43 @@ def sign_up(request):
 
 
 @login_required(login_url='/account/login/')
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def quiz(request,cat_id):
     '''
     Displays the questions of each category
     '''
-    cat_object = get_object_or_404(Category,pk = cat_id)
-    questions = Question.objects.filter(category = cat_object)
+    user = request.user
+    category_object = get_object_or_404(Category,pk = cat_id)
+    questions = Question.objects.filter(category = category_object)
     answers = Answer.objects.filter(question__in=questions)
-    return render(request,'quiz/quiz.html',{'answers':answers,'questions':questions})
+    for question in questions.all():
+        try:
+            question_in_result = Result.objects.get(user=user,question=question)
+            continue
+        except Result.DoesNotExist:
+            answers = Answer.objects.filter(question=question)
+            return render(request,'quiz/quiz.html',{'answers':answers,'question':question})
+
+
+    return render(request,'quiz/quiz.html',{'Completed':True})
+
+
+
+def update_progress(request,question,correctness):
+    
+    user = request.user
+    category = question.category
+    increase_mark = 0
+    total_questions = Question.objects.filter(category=category).count()
+    if correctness:
+        increase_mark = 1
+    try:
+        progress = Progress.objects.get(user=user,category=category)
+        progress.marks += increase_mark
+        progress.save()
+    except Progress.DoesNotExist:
+        progress = Progress.objects.create(user=user,category=category,marks=increase_mark,total=total_questions)
+
 
 @login_required(login_url='/account/login/')
 def result(request):
@@ -61,69 +93,34 @@ def result(request):
     Calculates the result 
     '''
     if request.method == 'POST':
-        # request.user
-        # [('1', '4'), ('2', '6'), ('3', '11'), ('4', '15'), ('5', '18')]
+        post_data = list(request.POST.items())
         user = request.user
-        rec_data = request.POST.items()
-        data = list(rec_data)
-        rem = data.pop(0)
-        rtndata = {}
-        marks = {}
-        correct_ones = 0
-        category = None
-        # total_quest = 0
-        for i in data:
-            q = i[0]
-            a = i[1]
-            correct_id = 0
-            question = get_object_or_404(Question,pk = q)
-            category = question.category
-            answers = Answer.objects.filter(question=question)
-            for ans in answers.all():
-                if ans.correct == True:
-                    correct_id = ans.id
-            #check if answer is correct.
-            # {qestion_object : [result,selected_answer,correct_answer,explanation]}  
-            if a == correct_id:
-                s_answer = get_object_or_404(Answer,pk=a)
-                selected_answer = s_answer.answer
-                explanation = question.explanation
-                correct_ones = correct_ones + 1
-                rtndata[question] = [ 'CORRECT', selected_answer,selected_answer, explanation]
-                #update Result model
-                try:
-                    res = Result.objects.get(user = user,question=question)
-                    res.correctness = True
-                    res.save()
-                except Result.DoesNotExist:
-                    res = Result.objects.create(user=user,question=question,correctness=True,correct_answer=c_answer,selected_answer=s_answer)
-        
-            else:
-                s_answer = get_object_or_404(Answer,pk=a)
-                selected_answer = s_answer.answer
-                c_answer = get_object_or_404(Answer,pk=correct_id)
-                correct_answer = c_answer.answer
-                explanation = question.explanation
-                rtndata[question] = [ 'INCORRECT', selected_answer,correct_answer, explanation]
-                #update Result model
-                try:
-                    res = Result.objects.get(user = user,question=question)
-                    res.correctness = False
-                    res.save()
-                except Result.DoesNotExist:
-                    res = Result.objects.create(user=user,question=question,correctness=False,correct_answer=c_answer,selected_answer=s_answer)
+        post_data.pop(0)
 
-        total_quest = Question.objects.filter(category=category).count()
-        marks['correct'] = correct_ones
-        marks['total'] = total_quest
+        question = get_object_or_404(Question,id=post_data[0][0])
+        selected_answer = get_object_or_404(Answer,id=post_data[0][1])
+        correct_answer_id = ''
+        answers = Answer.objects.filter(question=question)
+        for ans in answers.all():
+            if ans.correct == True:
+                correct_answer_id = ans.id
+        correct_answer = get_object_or_404(Answer,id=correct_answer_id)
         
-        
-        #Update progress Model
-        try:
-            prog = Progress.objects.get(user=user,category=category)
-            prog.marks = correct_ones
-            prog.total = total_quest
-            prog.save()
-        except Progress.DoesNotExist:
-            progress = Progress.objects.create(user=user,category=category,marks=correct_ones,total=total_quest)
-        return render(request,'quiz/result.html',{'rtndata':rtndata, 'marks':marks})
+        if str(correct_answer_id) == str(post_data[0][1]):
+            result = Result.objects.create(user=user,
+                                        question=question,
+                                        correctness=True,
+                                        correct_answer=correct_answer,
+                                        selected_answer=selected_answer)
+            update_progress(request,question,True)
+            return render(request,'quiz/result.html',{'result':result})
+        else :
+            result = Result.objects.create(user=user,
+                                        question=question,
+                                        correctness=False,
+                                        correct_answer=correct_answer,
+                                        selected_answer=selected_answer)
+            update_progress(request,question,False)
+            return render(request,'quiz/result.html',{'result':result})
+            
+    return render(request,'quiz/result.html')

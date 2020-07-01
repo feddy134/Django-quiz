@@ -5,24 +5,31 @@
 
 <div class="container">
     <br>
+    {% if Completed %}
+    <h3>You have attended all the questions in this category</h3>
+    <br>
+      <a href="{% url 'index' %}">
+          <button type="button" style="text-align: center;" class="btn btn-dark">
+              Home
+          </button>
+        </a>
+
+    {% else %}
     <form method="POST" action="{% url 'result' %}">
         {% csrf_token %}
-        {% for q in questions.all %}
-        <h5>Q - {{ q.question }}</h5>
+        <h5>Q - {{ question.question }}</h5>
         {% for a in answers.all %}
-            {% if q.id == a.question.id %}
         <div class="form-check">
-        <input class="form-check-input" type="radio" name="{{ q.id }}" id="{{a.id}}" value="{{a.id}}" required>
+        <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{a.id}}" value="{{a.id}}" required>
         <label class="form-check-label" for="{{a.id}}">
-            {{ a.answer }}
+          {{ a.answer }}
         </label>
       </div>
-      {% endif %}
         {% endfor %}
         <hr>
-      {% endfor %}
       <br>
       <button type="submit" class="btn btn-dark">Submit</button>
     </form>
+    {% endif %}
 </div>
 {% endblock %}
