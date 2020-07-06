@@ -66,7 +66,6 @@ def quiz(request,cat_id):
             answers = Answer.objects.filter(question=question)
             return render(request,'quiz/quiz.html',{'answers':answers,'question':question})
 
-
     return render(request,'quiz/quiz.html',{'Completed':True})
 
 
