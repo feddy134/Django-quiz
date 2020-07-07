@@ -26,6 +26,11 @@ class SignUpSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id','username']
+
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -44,13 +49,32 @@ class AnswerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+
+
 class ProgressSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    category = CategorySerializer(read_only=True)
     class Meta:
         model = Progress
-        fields = '__all__'
+        fields = ['id','marks','total','user','category']
 
 
 class ResultSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    question = QuestionSerializer(read_only=True)
+    correct_answer = AnswerSerializer(read_only=True)
+    selected_answer = AnswerSerializer(read_only=True)
     class Meta:
-        model = Category
-        fields = '__all__'
+        model = Result
+        fields = ['id','correctness','user','question','correctness','correct_answer','selected_answer']
+
+class QuizQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ['id','question']
+
+
+class QuizAnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['id','answer']
