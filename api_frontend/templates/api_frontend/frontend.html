@@ -1,0 +1,305 @@
+{% extends 'api_frontend/base.html' %}
+{% block content %}
+
+
+
+<div class="container">
+    <div id='category-list'>
+
+    </div>
+</div>
+<br>
+
+<div id='logOutDiv' class="text-center" style="display: none;">
+    <input id='log_out_button' type="button" class="btn btn-dark" onclick="logOut()" value="Log Out">
+</div>
+
+<div id='logInDiv' style="display: none;">
+    <div class="container">
+        <br>
+        <h1 style="text-align: center;">Log In</h1>
+        <form id='log_in_form'>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" class="form-control" id="login_username" name="username">
+            </div>
+            <div class="form-group">
+                <label for="Password1">Password</label>
+                <input type="password" class="form-control" id="login_password" name="password1">
+            </div>
+            <input id='signup_button' type="button" class="btn btn-primary" onclick="logIn()" value="Submit">
+            <!-- <button  type="submit"></button> -->
+        </form>
+        <br>
+        <div class="text-center">
+            <a href=""></a>
+            <button type="button" style="text-align: center;" onclick="loginToSignup()" class="btn btn-dark">
+                Sign up instead
+            </button></a>
+        </div>
+
+    </div>
+</div>
+
+<div id="signUpDiv" style="display: none;">
+    <div class="container">
+        <h1 style="text-align: center;">Sign up</h1>
+        <form id='signUpForm'>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" class="form-control" id="signup_username" name="username"
+                    aria-describedby="usenmameH">
+                <small id="usenmameH" class="form-text text-muted">Choose a unique username</small>
+            </div>
+            <div class="form-group">
+                <label for="Password1">Password</label>
+                <input type="password" class="form-control" id="signup_password1" name="password1">
+            </div>
+            <div class="form-group">
+                <label for="Password2">Confirm Password</label>
+                <input type="password" class="form-control" id="signup_password2" name="password2">
+            </div>
+
+            <input id='log_in_button' type="button" class="btn btn-primary" onclick="signUp()" value="Submit">
+        </form>
+        <br>
+        <div class="text-center">
+
+            <button type="button" style="text-align: center;" onclick="signupToLogIn()" class="btn btn-dark">
+                Log in instead
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+<div id= 'quizDiv' style="display: none;">
+    <form id='question_form'>
+        
+        <h5 id='question'>
+        </h5>
+        {% for a in answers.all %}
+        <div class="form-check">
+        <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{a.id}}" value="{{a.id}}" required>
+        <label class="form-check-label" for="{{a.id}}">
+          {{ a.answer }}
+        </label>
+      </div>
+        {% endfor %}
+        <hr>
+      <br>
+      <button type="submit" class="btn btn-dark">Submit</button>
+    </form>
+</div>
+
+<script type="text/javascript">
+
+    categoryList()
+
+
+    function loginToSignup() {
+        hideDiv('logInDiv')
+        showDiv("signUpDiv")
+    }
+    function signupToLogIn() {
+        hideDiv("signUpDiv")
+        showDiv('logInDiv')
+    }
+    function showDiv(id) {
+        var x = document.getElementById(id);
+        x.style.display = "block";
+    }
+    function hideDiv(id) {
+        var x = document.getElementById(id);
+        x.style.display = "none";
+    }
+
+
+    function signUp() {
+        var username = document.getElementById("signup_username").value
+        var password1 = document.getElementById("signup_password1").value
+        var password2 = document.getElementById("signup_password2").value
+        document.getElementById("signup_username").value = ''
+        document.getElementById("signup_password1").value = ''
+        document.getElementById("signup_password2").value = ''
+        var postData = {
+            username: username,
+            password: password1,
+            password2: password2,
+        }
+        fetch("http://127.0.0.1:8000/api/sign_up/", {
+            method: "POST",
+            body: JSON.stringify(postData),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+        })
+            .then((response) => {
+                return response.json()
+
+            })
+            .then((json) => {
+                if (json.token != null) {
+                    sessionStorage.setItem('Token', json.token)
+                    hideDiv("signUpDiv")
+                    showDiv('logOutDiv')
+                    categoryList()
+                } else {
+                    for (var prop in json) {
+                        if (json.hasOwnProperty(prop)) {
+                            alert(json[prop])
+                        }
+                    }
+                }
+            });
+    }
+
+
+    function logIn() {
+        var username = document.getElementById("login_username").value
+        var password = document.getElementById("login_password").value
+        document.getElementById("login_username").value = ''
+        document.getElementById("login_password").value = ''
+        fetch("http://127.0.0.1:8000/api/log_in/", {
+            method: "POST",
+            body: JSON.stringify({
+                username: username,
+                password: password,
+            }),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+        })
+            .then((response) => {
+                if (response.ok != true) {
+                    alert('Incorrect username or password')
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    return response.json()
+                }
+            })
+            .then((json) => {
+                sessionStorage.setItem('Token', json.token)
+                hideDiv('logInDiv')
+                showDiv('logOutDiv')
+                categoryList()
+            });
+    }
+
+
+    function logOut() {
+        sessionStorage.setItem('Token', '')
+        location.reload()
+    }
+
+
+    function categoryList() {
+        var categoryElement = document.getElementById('category-list')
+        var url = 'http://127.0.0.1:8000/api/index/'
+        var token = sessionStorage.getItem('Token')
+        fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8",
+                "Authorization": "Token " + token
+            }
+        })
+        .then((response) => {
+                if (response.ok != true) {
+                    alert(response.statusText)
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    showDiv('logOutDiv')
+                    return response.json()
+                }
+
+            })
+        .then(function (data) {
+
+                var categories = data
+                for (var i in categories) {
+                    var item = `
+                    <div id = "category-${i}" class=" category-wrapper flex-wrapper">
+                        <div style ='flex:7'>
+                            <h4 class = 'title'> ${categories[i].title} </h4>
+                        </div>
+                        <div style ='flex:2'>
+                            <button class="btn btn-dark attend">Attend </button>
+                        </div>
+                    </div>
+                    `
+                    categoryElement.innerHTML += item
+                    
+                }
+                for (var i in categories) {
+                    var attendBtn = document.getElementsByClassName('attend')[i]
+
+                    attendBtn.addEventListener('click',(function(item){
+                        return function(){
+                            attendQuiz(item)
+                        }
+                    })(categories[i]))
+                }
+            })
+    }
+    
+    function attendQuiz(item){
+        console.log('Item clicked',item)
+        var url = `http://127.0.0.1:8000/api/questions/${item.id}/`
+        var token = sessionStorage.getItem('Token')
+        fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8",
+                "Authorization": "Token " + token
+            }
+        })
+        .then((response) => {
+                if (response.ok != true) {
+                    alert(response.statusText)
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    return response.json()
+                }
+
+            })
+        .then(function (data) {
+                console.log(data)
+
+                // var categories = data
+                // for (var i in categories) {
+                //     var item = `
+                //     <div id = "category-${i}" class=" category-wrapper flex-wrapper">
+                //         <div style ='flex:7'>
+                //             <h4 class = 'title'> ${categories[i].title} </h4>
+                //         </div>
+                //         <div style ='flex:2'>
+                //             <button class="btn btn-dark attend">Attend </button>
+                //         </div>
+                //     </div>
+                //     `
+                //     categoryElement.innerHTML += item
+                    
+                // }
+                // for (var i in categories) {
+                //     var attendBtn = document.getElementsByClassName('attend')[i]
+
+                //     attendBtn.addEventListener('click',(function(item){
+                //         return function(){
+                //             attendQuiz(item)
+                //         }
+                //     })(categories[i]))
+                // }
+            })
+    }
+
+</script>
+{% endblock %}

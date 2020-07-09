@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from rest_framework import generics
 from django.shortcuts import render ,get_object_or_404 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,11 +8,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from quiz.models import Category, Question,Answer,Progress ,Result
 from .serializers import SignUpSerializer, CategorySerializer , QuestionSerializer,AnswerSerializer,ProgressSerializer,ResultSerializer
-from .serializers import QuizQuestionSerializer,QuizAnswerSerializer
+# from .serializers import QuizQuestionSerializer,QuizAnswerSerializer
 # Create your views here.
 
 
 class SignUpView(APIView):
+    permission_classes = []
     def post(self,request):
         serializer = SignUpSerializer(data = request.data)
         data = {}
@@ -26,38 +28,49 @@ class SignUpView(APIView):
         return Response(data)
 
 
-class IndexAPIView(APIView):
+class IndexAPIView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    def get(self,request):
-        user = request.user
-        categories = Category.objects.order_by('id')
-        serializer = CategorySerializer(categories,many = True)
-        return_data = serializer.data
-        return Response(serializer.data)
+    queryset = Category.objects.order_by('id')
+    serializer_class = CategorySerializer
 
-class QuizApiView(APIView):
+class AnswersApiView(generics.ListAPIView):
+    pass
+
+class QuestionApiView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
-    def get(self,request,cat_id):
-        user = request.user
-        category_object = get_object_or_404(Category,pk = cat_id)
-        questions = Question.objects.filter(category = category_object)
+    serializer_class = QuestionSerializer
+    def get_queryset(self):
+        cat_id = self.kwargs['cat_id']
+        user = self.request.user
+        question_in_result = Result.objects.filter(user=user,question__category__id = cat_id)
+        query = Question.objects.filter(category__id = cat_id)
+        qs = query.exclude(id__in=[o.question.id for o in question_in_result])
+        # qs = query.filter()
+        return qs
+
+# class QuizApiView(APIView):
+#     permission_classes = [IsAuthenticated]
+#     def get(self,request,cat_id):
+#         user = request.user
+#         category_object = get_object_or_404(Category,pk = cat_id)
+#         questions = Question.objects.filter(category = category_object)
         
-        answers = Answer.objects.filter(question__in=questions)
-        return_data = {}
-        for question in questions.all():
-            try:
-                question_in_result = Result.objects.get(user=user,question=question)
-                continue
-            except Result.DoesNotExist:
-                answers = Answer.objects.filter(question=question)
-                question_serializer = QuizQuestionSerializer(question)
-                answers_serializer = QuizAnswerSerializer(answers,many=True)
-                return_data['question'] = question_serializer.data
-                return_data['answers'] = answers_serializer.data
+#         answers = Answer.objects.filter(question__in=questions)
+#         return_data = {}
+#         for question in questions.all():
+#             try:
+#                 question_in_result = Result.objects.get(user=user,question=question)
+#                 continue
+#             except Result.DoesNotExist:
+#                 answers = Answer.objects.filter(question=question)
+#                 question_serializer = QuizQuestionSerializer(question)
+#                 answers_serializer = QuizAnswerSerializer(answers,many=True)
+#                 return_data['question'] = question_serializer.data
+#                 return_data['answers'] = answers_serializer.data
 
-                return Response(return_data)
-        return_data['message'] : 'All questions of this category has been attended'
-        return Response(return_data)
+#                 return Response(return_data)
+#         return_data['message'] : 'All questions of this category has been attended'
+#         return Response(return_data)
 
 
 def update_progress(request,question,correctness):

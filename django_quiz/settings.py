@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_api',
     'rest_framework.authtoken',
+    'api_frontend',
 ]
 
 
