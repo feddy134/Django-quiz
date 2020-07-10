@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from rest_framework import generics
+from rest_framework import mixins
 from django.shortcuts import render ,get_object_or_404 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from quiz.models import Category, Question,Answer,Progress ,Result
-from .serializers import SignUpSerializer, CategorySerializer , QuestionSerializer,AnswerSerializer,ProgressSerializer,ResultSerializer
+from .serializers import SignUpSerializer, CategorySerializer , QuestionSerializer,AnswerSerializer,ProgressSerializer,ResultSerializer,UserSerializer
 # from .serializers import QuizQuestionSerializer,QuizAnswerSerializer
 # Create your views here.
 
@@ -34,7 +35,12 @@ class IndexAPIView(generics.ListAPIView):
     serializer_class = CategorySerializer
 
 class AnswersApiView(generics.ListAPIView):
-    pass
+    permission_classes = [IsAuthenticated]
+    serializer_class = AnswerSerializer
+    def get_queryset(self):
+        question_id = self.kwargs['question_id']
+        query = Answer.objects.filter(question__id = question_id)
+        return query
 
 class QuestionApiView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -43,92 +49,63 @@ class QuestionApiView(generics.ListAPIView):
         cat_id = self.kwargs['cat_id']
         user = self.request.user
         question_in_result = Result.objects.filter(user=user,question__category__id = cat_id)
-        query = Question.objects.filter(category__id = cat_id)
-        qs = query.exclude(id__in=[o.question.id for o in question_in_result])
-        # qs = query.filter()
+        query = Question.objects.filter(category__id = cat_id).exclude(id__in=[o.question.id for o in question_in_result])
+        return query
+
+
+
+class ResultAPIView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ResultSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Result.objects.filter(user = user)
+        return qs
+        
+    def create(self,request):
+        user = self.request.user
+        data = self.request.data
+        question = get_object_or_404(Question,id = data['question'])
+        correct_answer = get_object_or_404(Answer,id = data['correct_answer'])
+        selected_answer = get_object_or_404(Answer,id = data['selected_answer'])
+        correctness = False
+        if data['correctness'] == 'true':
+            correctness = True
+        else:
+            correctness = False
+        result = Result.objects.create(user=user,
+                            question=question,
+                            correctness=correctness,
+                            correct_answer=correct_answer,
+                            selected_answer=selected_answer)
+
+        serializer = ResultSerializer(result)
+        return Response(serializer.data)
+        
+
+class ProgressAPIView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProgressSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Progress.objects.filter(user = user)
         return qs
 
-# class QuizApiView(APIView):
-#     permission_classes = [IsAuthenticated]
-#     def get(self,request,cat_id):
-#         user = request.user
-#         category_object = get_object_or_404(Category,pk = cat_id)
-#         questions = Question.objects.filter(category = category_object)
-        
-#         answers = Answer.objects.filter(question__in=questions)
-#         return_data = {}
-#         for question in questions.all():
-#             try:
-#                 question_in_result = Result.objects.get(user=user,question=question)
-#                 continue
-#             except Result.DoesNotExist:
-#                 answers = Answer.objects.filter(question=question)
-#                 question_serializer = QuizQuestionSerializer(question)
-#                 answers_serializer = QuizAnswerSerializer(answers,many=True)
-#                 return_data['question'] = question_serializer.data
-#                 return_data['answers'] = answers_serializer.data
-
-#                 return Response(return_data)
-#         return_data['message'] : 'All questions of this category has been attended'
-#         return Response(return_data)
-
-
-def update_progress(request,question,correctness):
-    user = request.user
-    category = question.category
-    increase_mark = 0
-    total_questions = Question.objects.filter(category=category).count()
-    if correctness:
-        increase_mark = 1
-    try:
-        progress = Progress.objects.get(user=user,category=category)
-        progress.marks += increase_mark
-        progress.save()
-    except Progress.DoesNotExist:
-        progress = Progress.objects.create(user=user,category=category,marks=increase_mark,total=total_questions)
-
-
-class ResultAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    def post(self,request):
-        user = request.user
-        data = request.data
-        question = get_object_or_404(Question,id=data['question'])
-        selected_answer = get_object_or_404(Answer,id=data['answer'])
-        correct_answer_id = ''
-        answers = Answer.objects.filter(question=question)
+    def create(self,request):
+        user = self.request.user
+        data = self.request.data
+        category_id = data['category'] 
+        category = get_object_or_404(Category,id=category_id)
+        total_questions = Question.objects.filter(category=category).count()
         try:
-            attempted_result = Result.objects.get(user=user,question=question)
-            return Response({'message':'You have already attempted this question'})
-        except Result.DoesNotExist:
-            for ans in answers.all():
-                if ans.correct == True:
-                    correct_answer_id = ans.id
-            correct_answer = get_object_or_404(Answer,id=correct_answer_id)
-            if str(correct_answer_id) == str(data['answer']):
-                result = Result.objects.create(user=user,
-                                            question=question,
-                                            correctness=True,
-                                            correct_answer=correct_answer,
-                                            selected_answer=selected_answer)
-                update_progress(request,question,True)
-                result_serializer = ResultSerializer(result)
-                return Response(result_serializer.data)
-            else :
-                result = Result.objects.create(user=user,
-                                            question=question,
-                                            correctness=False,
-                                            correct_answer=correct_answer,
-                                            selected_answer=selected_answer)
-                update_progress(request,question,False)
-                result_serializer = ResultSerializer(result)
-                return Response(result_serializer.data)
-
-
-class ProgressAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self,request):
-        user = request.user
-        progresses = Progress.objects.filter(user=user)
-        serializer = ProgressSerializer(progresses,many=True)
-        return Response(serializer.data) 
+            progress = Progress.objects.get(user=user,category=category)
+            progress.marks += int(data['marks'])
+            progress.save()
+            serializer= ProgressSerializer(progress)
+            return Response(serializer.data)
+        except Progress.DoesNotExist:
+            progress = Progress.objects.create(user=user,category=category,marks=data['marks'],total=total_questions)
+            serializer= ProgressSerializer(progress)
+            return Response(serializer.data)

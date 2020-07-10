@@ -14,6 +14,15 @@
     <input id='log_out_button' type="button" class="btn btn-dark" onclick="logOut()" value="Log Out">
 </div>
 
+<div id='getProgressDiv' class="text-center" style="display: none;">
+    <br>
+    <input id='getProgress' type="button" class="btn btn-dark" onclick="getProgress()" value="Get Progress">
+</div>
+
+<div id='progressReport' class="container" style="display: none;">
+    <br>
+</div>
+
 <div id='logInDiv' style="display: none;">
     <div class="container">
         <br>
@@ -74,30 +83,66 @@
     </div>
 </div>
 
+<div id='quizDiv' style="display: none;">
+    <div class="container">
+        <form id='question_form'>
 
-<div id= 'quizDiv' style="display: none;">
-    <form id='question_form'>
-        
-        <h5 id='question'>
-        </h5>
-        {% for a in answers.all %}
-        <div class="form-check">
-        <input class="form-check-input" type="radio" name="{{ question.id }}" id="{{a.id}}" value="{{a.id}}" required>
-        <label class="form-check-label" for="{{a.id}}">
-          {{ a.answer }}
-        </label>
-      </div>
-        {% endfor %}
-        <hr>
-      <br>
-      <button type="submit" class="btn btn-dark">Submit</button>
-    </form>
+            <h5 id='question'>
+            </h5>
+            <div id='answer_options'>
+
+            </div>
+            <hr>
+            <br>
+            <button type="submit" class="btn btn-dark">Submit</button>
+        </form>
+    </div>
 </div>
 
+<div id='resultsDiv' class="container" style="display: none;">
+    <h3>Results</h3>
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Q. </th>
+                <th id='result-question' scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row">Result</th>
+                <td id='result-result'></td>
+            </tr>
+            <th scope="row">Selected</th>
+            <td id='result-selected'> </td>
+            </tr>
+            <tr>
+                <th scope="row">Correct</th>
+                <td id='result-correct'></td>
+            </tr>
+            <tr>
+                <th scope="row">Explanation</th>
+                <td id='result-explanation'></td>
+            </tr>
+        </tbody>
+    </table>
+    <br>
+    <div class="text-center">
+        <button id='next-question' type="button" style="text-align: center;" class="btn btn-dark">
+            Next Question
+        </button>
+
+        <button id='go-home' type="button" style="text-align: center;" class="btn btn-dark">
+            Home
+        </button>
+    </div>
+</div>
+
+
 <script type="text/javascript">
-
     categoryList()
-
+    var selectedAnswer = ''
+    var correctAnswer = ''
 
     function loginToSignup() {
         hideDiv('logInDiv')
@@ -197,9 +242,8 @@
     }
 
 
-    function categoryList() {
-        var categoryElement = document.getElementById('category-list')
-        var url = 'http://127.0.0.1:8000/api/index/'
+    function getProgress() {
+        var url = 'http://127.0.0.1:8000/api/progress/'
         var token = sessionStorage.getItem('Token')
         fetch(url, {
             method: "GET",
@@ -208,7 +252,7 @@
                 "Authorization": "Token " + token
             }
         })
-        .then((response) => {
+            .then((response) => {
                 if (response.ok != true) {
                     alert(response.statusText)
                     showDiv('logInDiv')
@@ -220,8 +264,78 @@
                 }
 
             })
-        .then(function (data) {
+            .then(function (data) {
+                
+                if (data.length == 0) {
+                    alert('You havent attended any quiz yet !!!!')
+                }
+                else {
+                    var progressReportElement = document.getElementById('progressReport')
+                    showDiv('progressReport')
+                    var progress = data
+                    progressReportElement.innerHTML = ''
+                    for (var i in progress) {
+                        var item = `
+                            <div id = "progress-${i}" class=" category-wrapper flex-wrapper">
+                                <div style ='flex:7'>
+                                    <h4 class = 'title'> ${progress[i].category.title} </h4>
+                                </div>
+                                <div style ='flex:2'>
+                                    <button class="btn btn-dark attend">${progress[i].marks} / ${progress[i].total} </button>
+                                </div>
+                            </div>
+                        `
+                        progressReportElement.innerHTML += item
+                    }
+                    var hideProgressButton = `
+                    <br>
+                    <div class="text-center">
+                    <button id='hideProgressButton' class="btn btn-danger"> Hide Progress</button>
+                    </div>
+                    `
+                    progressReportElement.innerHTML += hideProgressButton
 
+                    hideProgressButtonElement = document.getElementById('hideProgressButton')
+
+                    hideProgressButtonElement.addEventListener('click', function (e) {
+                        hideDiv('progressReport')
+                    })
+                }
+
+            })
+
+    }
+
+
+    function categoryList() {
+        hideDiv('quizDiv')
+        showDiv('category-list')
+        showDiv('getProgressDiv')
+        var categoryElement = document.getElementById('category-list')
+
+        var url = 'http://127.0.0.1:8000/api/index/'
+        var token = sessionStorage.getItem('Token')
+        fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8",
+                "Authorization": "Token " + token
+            }
+        })
+            .then((response) => {
+                if (response.ok != true) {
+                    alert(response.statusText)
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    showDiv('logOutDiv')
+                    return response.json()
+                }
+
+            })
+            .then(function (data) {
+                categoryElement.innerHTML = ''
                 var categories = data
                 for (var i in categories) {
                     var item = `
@@ -234,25 +348,34 @@
                         </div>
                     </div>
                     `
+
                     categoryElement.innerHTML += item
-                    
+
                 }
                 for (var i in categories) {
                     var attendBtn = document.getElementsByClassName('attend')[i]
 
-                    attendBtn.addEventListener('click',(function(item){
-                        return function(){
-                            attendQuiz(item)
+                    attendBtn.addEventListener('click', (function (item) {
+                        return function () {
+                            itemId = item.id
+                            hideDiv('getProgressDiv')
+                            attendQuiz(itemId)
                         }
                     })(categories[i]))
                 }
             })
     }
-    
-    function attendQuiz(item){
-        console.log('Item clicked',item)
-        var url = `http://127.0.0.1:8000/api/questions/${item.id}/`
+
+
+    function attendQuiz(item) {
+
+        var url = `http://127.0.0.1:8000/api/questions/${item}/`
         var token = sessionStorage.getItem('Token')
+        var questionElement = document.getElementById('question')
+
+        selectedAnswer = ''
+        correctAnswer = ''
+
         fetch(url, {
             method: "GET",
             headers: {
@@ -260,7 +383,7 @@
                 "Authorization": "Token " + token
             }
         })
-        .then((response) => {
+            .then((response) => {
                 if (response.ok != true) {
                     alert(response.statusText)
                     showDiv('logInDiv')
@@ -271,35 +394,196 @@
                 }
 
             })
-        .then(function (data) {
-                console.log(data)
+            .then(function (data) {
+                if (data.length == 0) {
+                    alert('You have attend all questions in this category')
+                    categoryList()
+                }
+                else {
+                    hideDiv('category-list')
+                    hideDiv('logOutDiv')
+                    showDiv('quizDiv')
+                    var single_question = data[0]
+                    var item = ` ${single_question.question}`
+                    questionElement.innerHTML = ''
+                    questionElement.innerHTML += item
+                    var questionId = single_question.id
+                    displayOptions(questionId)
+                }
 
-                // var categories = data
-                // for (var i in categories) {
-                //     var item = `
-                //     <div id = "category-${i}" class=" category-wrapper flex-wrapper">
-                //         <div style ='flex:7'>
-                //             <h4 class = 'title'> ${categories[i].title} </h4>
-                //         </div>
-                //         <div style ='flex:2'>
-                //             <button class="btn btn-dark attend">Attend </button>
-                //         </div>
-                //     </div>
-                //     `
-                //     categoryElement.innerHTML += item
-                    
-                // }
-                // for (var i in categories) {
-                //     var attendBtn = document.getElementsByClassName('attend')[i]
 
-                //     attendBtn.addEventListener('click',(function(item){
-                //         return function(){
-                //             attendQuiz(item)
-                //         }
-                //     })(categories[i]))
-                // }
             })
     }
 
+
+    function displayOptions(id) {
+        var url = `http://127.0.0.1:8000/api/answers/${id}/`
+        var token = sessionStorage.getItem('Token')
+        var questionElement = document.getElementById('question')
+
+        fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8",
+                "Authorization": "Token " + token
+            }
+        })
+            .then((response) => {
+                if (response.ok != true) {
+                    alert(response.statusText)
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    return response.json()
+                }
+
+            })
+            .then(function (data) {
+                var options = data
+                var answerOptionsElement = document.getElementById('answer_options')
+                answerOptionsElement.innerHTML = ''
+                for (var i in options) {
+                    var item = `
+                    <div class="form-check">
+                        <input class="form-check-input answer-options" type="radio" name="${options[i].question}" id="${options[i].id}" value="${options[i].id}"
+                        required>
+                        <label class="form-check-label" for="${options[i].id}">
+                            ${options[i].answer}
+                        </label>
+                    </div>
+                    `
+                    answerOptionsElement.innerHTML += item
+                    if (options[i].correct) {
+                        correctAnswer = options[i]
+                    }
+                }
+                for (var i in options) {
+                    var optionsBtn = document.getElementsByClassName('answer-options')[i]
+
+                    optionsBtn.addEventListener('click', (function (item) {
+                        return function () {
+                            selectedAnswer = item
+                        }
+                    })(options[i]))
+                }
+            })
+    }
+
+
+    var answerForm = document.getElementById('question_form')
+    answerForm.addEventListener('submit', function (e) {
+        e.preventDefault()
+        var url = `http://127.0.0.1:8000/api/result/`
+        var correctness = "false"
+        var marks = 0
+        var token = sessionStorage.getItem('Token')
+        if (selectedAnswer.id === correctAnswer.id) {
+            correctness = "true"
+            marks += 1
+        }
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8",
+                "Authorization": "Token " + token
+            },
+            body: JSON.stringify({
+                "question": selectedAnswer.question,
+                "correct_answer": correctAnswer.id,
+                "selected_answer": selectedAnswer.id,
+                "correctness": correctness,
+            })
+        })
+            .then((response) => {
+                if (response.ok != true) {
+                    alert(response.statusText)
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    return response.json()
+                }
+            })
+            .then(function (data) {
+                var category = data.question.category
+                updateProgress(category, marks)
+                displayResult(data)
+            })
+
+    })
+
+
+    function updateProgress(category, marks) {
+        var url = `http://127.0.0.1:8000/api/progress/`
+        var token = sessionStorage.getItem('Token')
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json; charset=UTF-8",
+                "Authorization": "Token " + token
+            },
+            body: JSON.stringify({
+                "category": category,
+                "marks": marks,
+            })
+        })
+            .then((response) => {
+                if (response.ok != true) {
+                    alert(response.statusText)
+                    showDiv('logInDiv')
+                    return null
+                }
+                else {
+                    return response.json()
+                }
+            })
+            .then(function (data) {
+                console.log('Progress Updated')
+            })
+    }
+
+
+    function displayResult(result) {
+        hideDiv('quizDiv')
+        showDiv('resultsDiv')
+        var correctIncorrect = 'INCORRECT'
+        if (result.correctness) {
+            correctIncorrect = 'CORRECT'
+        }
+        resultResult = document.getElementById('result-result')
+        resultSelected = document.getElementById('result-selected')
+        resultCorrect = document.getElementById('result-correct')
+        resultExplanation = document.getElementById('result-explanation')
+        resultQuestion = document.getElementById('result-question')
+
+        resultQuestion.innerHTML = ''
+        resultResult.innerHTML = ''
+        resultSelected.innerHTML = ''
+        resultCorrect.innerHTML = ''
+        resultExplanation.innerHTML = ''
+
+
+        resultQuestion.innerHTML += result.question.question
+        resultResult.innerHTML += correctIncorrect
+        resultSelected.innerHTML += result.selected_answer.answer
+        resultCorrect.innerHTML += result.correct_answer.answer
+        resultExplanation.innerHTML += result.question.explanation
+
+        var nextQuestion = document.getElementById('next-question')
+        var goHome = document.getElementById('go-home')
+
+        nextQuestion.addEventListener('click', function (e) {
+            hideDiv('resultsDiv')
+            category = result.question.category
+            attendQuiz(category)
+
+        })
+        goHome.addEventListener('click', function (e) {
+            hideDiv('resultsDiv')
+            categoryList()
+        })
+
+    }
 </script>
 {% endblock %}
